@@ -1,0 +1,23 @@
+🔌 API Hookup Points
+Every // TODO: comment marks an exact swap point:
+
+rc_theme.dart → replace dummyCustomer and rcPackages with API model classes
+rc_recharge_screen.dart → _calculateAmount() can call a pricing endpoint
+rc_qr_payment_screen.dart → _checkPayment() → replace the Future.delayed with your payment status API
+rc_payment_success_screen.dart → _savePhone() / _pickPhoto() → your phone update + photo upload endpoints
+rc_rollback_screen.dart → _submit() → your rollback submission endpoint
+
+
+
+
+rc/
+├── rc_theme.dart              ← Colors, text styles, ALL dummy data models
+├── screens/
+│   ├── rc_customer_details_screen.dart   ← Screen 1
+│   ├── rc_recharge_screen.dart           ← Screen 2
+│   ├── rc_qr_payment_screen.dart         ← Screen 3 (real QR + timer)
+│   ├── rc_payment_success_screen.dart    ← Screen 4 (tasks)
+│   ├── rc_no_reason_screen.dart          ← Screen 5
+│   └── rc_rollback_screen.dart          ← Screen 6
+└── widgets/
+    └── rc_widgets.dart        ← All shared widgets
