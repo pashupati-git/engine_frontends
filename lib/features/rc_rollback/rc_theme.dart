@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RcColors {
-  // Greens
+  //Greens
   static const g9 = Color(0xFF0D4020);
   static const g8 = Color(0xFF1A6B2F);
   static const g7 = Color(0xFF206035);
@@ -40,29 +40,35 @@ class RcColors {
 }
 
 class RcTextStyles {
-  static TextStyle heading(double size, {Color? color, FontWeight weight = FontWeight.w800}) =>
-      GoogleFonts.plusJakartaSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color ?? RcColors.ink,
-      );
+  static TextStyle heading(
+    double size, {
+    Color? color,
+    FontWeight weight = FontWeight.w800,
+  }) => GoogleFonts.plusJakartaSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color ?? RcColors.ink,
+  );
 
-  static TextStyle body(double size, {Color? color, FontWeight weight = FontWeight.w500}) =>
-      GoogleFonts.plusJakartaSans(
-        fontSize: size,
-        fontWeight: weight,
-        color: color ?? RcColors.ink2,
-      );
+  static TextStyle body(
+    double size, {
+    Color? color,
+    FontWeight weight = FontWeight.w800,
+  }) => GoogleFonts.plusJakartaSans(
+    fontSize: size,
+    fontWeight: weight,
+    color: color ?? RcColors.ink,
+  );
 
   static TextStyle label({Color? color}) => GoogleFonts.plusJakartaSans(
-        fontSize: 10,
-        fontWeight: FontWeight.w800,
-        color: color ?? RcColors.g8,
-        letterSpacing: 0.9,
-      );
+    fontSize: 10,
+    fontWeight: FontWeight.w800,
+    color: color ?? RcColors.g8,
+    letterSpacing: 0.9,
+  );
 }
 
-/// Dummy data models — swap with real API models later
+///Dummy data models -swap with real API models later
 class RcCustomer {
   final String id;
   final String name;
@@ -93,8 +99,8 @@ class RcCustomer {
 
 const dummyCustomer = RcCustomer(
   id: '362047',
-  name: 'Puja Maharjan',
-  initials: 'PM',
+  name: 'Sora Maharjan',
+  initials: 'SM',
   address: 'Laka Chowk, Lalitpur',
   phone: '9860369715',
   gpsRegistered: '27.6355, 85.3193',
@@ -109,7 +115,11 @@ class RcPackage {
   final String label;
   final String value;
   final int basePrice;
-  const RcPackage({required this.label, required this.value, required this.basePrice});
+  const RcPackage({
+    required this.label,
+    required this.value,
+    required this.basePrice,
+  });
 }
 
 final rcPackages = [
@@ -138,25 +148,33 @@ const rcDetailReasons = [
   'Other',
 ];
 
-const rcNextIsps = ['Worldlink', 'Vianet', 'Classic Tech', 'Subisu', 'Not Switching'];
+const rcNextIsps = [
+  'Worldlink',
+  'Vianet',
+  'Classic Tech',
+  'Subisu',
+  'Not Switching',
+];
 
-// Non-recharge reason pills
+//Non-recharge reason pills
 const rcTechReasons = [
   'Frequent Internet Down',
   'Slow Speed',
-  'High Latency / Gaming Issue',
-  'WiFi Coverage Issue',
-  'ONU / Router Problem',
+  'High Latency/Gaming Issue',
+  'Wifi Coverage Issue',
+  'ONU/ Router Problem',
 ];
+
 const rcPaymentReasons = [
   'Too Expensive',
-  'Waiting for Offer / Discount',
+  'Waitng for Offer/ Discount',
   'Financial Difficulty',
   'Wants Cheaper Package',
 ];
+
 const rcPersonalReasons = [
-  'Out of Town / Temporary',
-  'Relocating / Moving',
+  'Out of Town/ Temporary',
+  'Reloacating /Moving',
   'Switching to Other ISP',
   'Not Interested',
 ];

@@ -1,7 +1,6 @@
 // ======================= RC ROLLBACK MAIN FUnction CODE ==================================
 
 import 'package:engine_frontends/features/exit_page/screens/exit_form_screen.dart';
-import 'package:engine_frontends/features/rc_rollback/screens/rc_customer_details_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -22,7 +21,7 @@ class MyApp extends StatelessWidget {
         return MaterialApp(home: child, debugShowCheckedModeBanner: false);
       },
       // child:ExitFormScreen(),
-      child: RcCustomerDetailsScreen(),
+      // child: RcCustomerDetailsScreen(),
     );
   }
 }
