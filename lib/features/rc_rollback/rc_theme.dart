@@ -108,7 +108,7 @@ const dummyCustomer = RcCustomer(
   package: 'Tachyon-100Mbps',
   speed: '100 Mbps',
   subscription: '12 Months',
-  username: 'puja.maharjan_362047',
+  username: 'sora.maharjan_362047',
 );
 
 class RcPackage {

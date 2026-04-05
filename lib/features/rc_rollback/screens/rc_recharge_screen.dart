@@ -1,6 +1,14 @@
 import 'package:engine_frontends/features/rc_rollback/rc_theme.dart';
 import 'package:engine_frontends/features/rc_rollback/screens/rc_qr_payment_screen.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_banner_type.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_button_style.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_drop_down.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_form_label.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_section_label.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_text_field.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_top_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class RcRechargeScreen extends StatefulWidget {
@@ -54,11 +62,11 @@ class _RcRechargeScreenState extends State<RcRechargeScreen> {
     }
 
     final base = _packageMap[_selectedPackage!] ?? 0;
-    final onuFee = _selectedOnu == 'Wifi 6 ONU' ? 500 : 0;
+    final onuFee = _selectedOnu == 'WiFi 6 ONU' ? 500 : 0;
     final is12 = _selectedPeriod == '12 Months';
     final total = (is12 ? base * 10 : base) + onuFee;
-    final onuLabel = _selectedOnu == 'Wifi 6 ONU'
-        ? 'Wifi 6 ONU (+Rs 500)'
+    final onuLabel = _selectedOnu == 'WiFi 6 ONU'
+        ? 'WiFi 6 ONU (+Rs 500)'
         : 'Dual Band ONU';
     final periodLabel = is12 ? '12 Months(2 free)' : '1 Month';
     final breakdown = '$_selectedPackage * $periodLabel · $onuLabel';
@@ -89,6 +97,177 @@ class _RcRechargeScreenState extends State<RcRechargeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: Center(child: Text('Recharge Screen')));
+    return Scaffold(
+      backgroundColor: RcColors.bg,
+      body: Column(
+        children: [
+          Container(
+            color: RcColors.g8,
+            child: SafeArea(bottom: false, child: RcTopBar(title: 'Recharge')),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(14.w, 14.h, 14.w, 120.h),
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RcBanner(
+                    'Customer confirmed for recharge — ${dummyCustomer.name}',
+                  ),
+
+                  RcSectionLabel(
+                    'Account',
+                    margin: EdgeInsets.only(bottom: 10.h),
+                  ),
+                  const RcFormLabel('Username', isDark: true),
+                  RcTextField(
+                    initialValue: dummyCustomer.username,
+                    readOnly: true,
+                  ),
+
+                  SizedBox(height: 16.h),
+                  RcSectionLabel(
+                    'Recharge Details',
+                    margin: EdgeInsets.only(bottom: 10.h),
+                  ),
+
+                  //Package
+                  RcFormLabel('Recharge Package', required: true),
+                  RcDropdown(
+                    items: _packageMap.keys.toList(),
+                    value: _selectedPackage,
+                    hint: 'Select Package',
+                    onChanged: _onPackageChanged,
+                  ),
+                  SizedBox(height: 14.h),
+
+                  //Subscription(visible after package)
+                  if (_selectedPackage != null) ...[
+                    RcFormLabel('Subscription Period', required: true),
+                    RcDropdown(
+                      items: rcSubscriptionPeriods,
+                      value: _selectedPeriod,
+                      hint: 'Select Period',
+                      onChanged: (v) {
+                        setState(() => _selectedPeriod = v);
+                        _onPeriodOrOnuChanged();
+                      },
+                    ),
+                    SizedBox(height: 14.h),
+                  ],
+
+                  //ONU Type
+                  RcFormLabel('ONU Type', required: true),
+                  RcDropdown(
+                    items: rcOnuTypes,
+                    value: _selectedOnu,
+                    hint: 'Select ONU Type',
+                    onChanged: (v) {
+                      setState(() => _selectedOnu = v);
+                      _onPeriodOrOnuChanged();
+                    },
+                  ),
+                  SizedBox(height: 12.h),
+
+                  //Calculate button
+                  RcButton(
+                    label: 'Calculate Amount',
+                    style: RcButtonStyle.gold,
+                    onTap: _calculateAmount,
+                  ),
+                  SizedBox(height: 12.h),
+
+                  //Amount card
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: _amountVisible
+                        ? _AmountCard(
+                            key: const ValueKey('amount-card'),
+                            amount: 'Rs ${_formatNum(_totalAmount)}',
+                            breakdown: _breakdown,
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+
+                  if (_amountVisible) ...[
+                    RcButton(label: 'Proceed with Payment →', onTap: _proceed),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatNum(int n) {
+    return n.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]},',
+    );
+  }
+}
+
+class _AmountCard extends StatelessWidget {
+  final String amount;
+  final String breakdown;
+  const _AmountCard({super.key, required this.amount, required this.breakdown});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: EdgeInsets.only(bottom: 14.h),
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [RcColors.g8, RcColors.g6],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12.r),
+        boxShadow: [
+          BoxShadow(
+            color: RcColors.g8.withOpacity(0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            'TOTAL PAYABLE',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10.sp,
+              letterSpacing: 0.8,
+              color: Colors.white.withOpacity(0.75),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            amount,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 38.sp,
+              fontWeight: FontWeight.w800,
+              color: RcColors.gd,
+              letterSpacing: -0.5,
+            ),
+          ),
+          SizedBox(height: 5.h),
+          Text(
+            breakdown,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              color: Colors.white.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
