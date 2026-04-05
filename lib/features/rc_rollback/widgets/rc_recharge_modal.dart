@@ -54,12 +54,12 @@ class RcRechargeModal extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
       ),
       padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom + 36.h,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 36.h, //drawer height
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
+          // Handle------------------------
           Container(
             margin: EdgeInsets.only(top: 14.h),
             width: 36.w,
@@ -69,7 +69,7 @@ class RcRechargeModal extends StatelessWidget {
               borderRadius: BorderRadius.circular(2.r),
             ),
           ),
-          // Icon
+          // Icon----------------------------
           Container(
             margin: EdgeInsets.only(top: 18.h),
             width: 64.w,
@@ -82,7 +82,7 @@ class RcRechargeModal extends StatelessWidget {
               child: Text('💳', style: TextStyle(fontSize: 28.sp)),
             ),
           ),
-          // Title
+          // Title---------------------------
           Padding(
             padding: EdgeInsets.fromLTRB(20.w, 14.h, 20.w, 6.h),
             child: Text(
@@ -107,7 +107,7 @@ class RcRechargeModal extends StatelessWidget {
               ),
             ),
           ),
-          // Customer info
+          // Customer info--------------------------------------
           Container(
             margin: EdgeInsets.fromLTRB(16.w, 0, 16.w, 20.h),
             padding: EdgeInsets.all(16.w),

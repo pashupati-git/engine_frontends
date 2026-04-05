@@ -13,6 +13,20 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+
+
+
+//===================widgets used===================//
+//RcTopBar
+//RcHeroCard
+//RcInfoCard
+//RcInfoRow
+//RcSectionLabel
+//RcButton
+//RcRechargeModal
+//RcNoReasonScreen(screen)
+//RcRechargeScreen(screen)
+
 class RcCustomerDetailsScreen extends StatelessWidget {
   const RcCustomerDetailsScreen({super.key});
 
