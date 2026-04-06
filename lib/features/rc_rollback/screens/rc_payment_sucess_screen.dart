@@ -1,13 +1,16 @@
+
 import 'package:engine_frontends/features/rc_rollback/rc_theme.dart';
 import 'package:engine_frontends/features/rc_rollback/screens/rc_customer_details_screen.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_button_style.dart';
 import 'package:engine_frontends/features/rc_rollback/widgets/rc_section_label.dart';
 import 'package:engine_frontends/features/rc_rollback/widgets/rc_task_item.dart';
+import 'package:engine_frontends/features/rc_rollback/widgets/rc_text_field.dart';
 import 'package:engine_frontends/features/rc_rollback/widgets/rc_top_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 
 class RcPaymentSuccessScreen extends StatefulWidget {
   final String customerName;
@@ -35,7 +38,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
   final _phoneController = TextEditingController();
   bool _phoneSaved = false;
 
-  //TODO:Task done states - wire to Bloc/Provider later
+  // Task done states — wire to Bloc/Provider later
   final Map<String, bool> _taskDone = {
     't1': false,
     't2': false,
@@ -109,7 +112,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
       _taskDone['t1'] = true;
       _phoneEditorOpen = false;
     });
-    //TODO: call Api to update phone number.---------------------------------
+    // TODO: call API to update phone number
   }
 
   Future<void> _pickPhoto() async {
@@ -117,7 +120,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
     final img = await picker.pickImage(source: ImageSource.camera);
     if (img != null) {
       setState(() => _taskDone['t3'] = true);
-      //TODO: upload photo via API:------------------------------------------
+      // TODO: upload photo via API
     }
   }
 
@@ -159,7 +162,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
               physics: const BouncingScrollPhysics(),
               child: Column(
                 children: [
-                  //Success hero-------------------------------------------
+                  // Success hero
                   Padding(
                     padding: EdgeInsets.symmetric(vertical: 14.h),
                     child: Column(
@@ -187,7 +190,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
                           'Payment Successful!',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 22.sp,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             color: RcColors.g8,
                           ),
                         ),
@@ -205,7 +208,6 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
                               TextSpan(
                                 text:
                                     '${widget.customerName} · #${dummyCustomer.id}',
-
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -217,7 +219,7 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
                     ),
                   ),
 
-                  //Summary card-------------------------------------------------
+                  // Summary card
                   Container(
                     margin: EdgeInsets.only(bottom: 20.h),
                     decoration: BoxDecoration(
@@ -247,10 +249,10 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
                     ),
                   ),
 
-                  //Task section---------------------------------------------------
-                  RcSectionLabel('Complete remaining Tasks'),
+                  // Task section
+                  RcSectionLabel('Complete Remaining Tasks'),
 
-                  //Task 1; Phone update
+                  // Task 1: Phone update
                   RcTaskItem(
                     emoji: '📞',
                     title: 'Mobile Number Correction',
@@ -298,12 +300,104 @@ class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen>
                                     color: RcColors.mid,
                                   ),
                                 ),
-                                SizedBox(height:10.h),
+                                SizedBox(height: 5.h),
+                                RcTextField(
+                                  initialValue: dummyCustomer.phone,
+                                  readOnly: true,
+                                ),
+                                SizedBox(height: 10.h),
+                                Row(
+                                  children: [
+                                    Text(
+                                      'New Number',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: RcColors.g8,
+                                      ),
+                                    ),
+                                    Text(
+                                      ' *',
+                                      style: TextStyle(
+                                        color: RcColors.red,
+                                        fontSize: 11.sp,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 5.h),
+                                RcTextField(
+                                  controller: _phoneController,
+                                  hint: 'Enter correct number',
+                                  keyboardType: TextInputType.phone,
+                                ),
+                                SizedBox(height: 12.h),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: RcButton(
+                                        label: 'Cancel',
+                                        style: RcButtonStyle.outline,
+                                        isSmall: false,
+                                        onTap: () => setState(
+                                          () => _phoneEditorOpen = false,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8.w),
+                                    Expanded(
+                                      flex: 2,
+                                      child: RcButton(
+                                        label: 'Save Number ✓',
+                                        onTap: _savePhone,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           )
                         : const SizedBox.shrink(),
                   ),
+
+                  // Task 2: GPS
+                  RcTaskItem(
+                    emoji: '📍',
+                    title: 'Send GPS Location',
+                    subtitle: 'Capture current field location',
+                    done: _taskDone['t2'] ?? false,
+                    onTap: () => _tapTask('t2'),
+                  ),
+
+                  // Task 3: Photo
+                  RcTaskItem(
+                    emoji: '📸',
+                    title: 'Capture Installation Photo',
+                    subtitle: 'Photo of ONU at install point',
+                    done: _taskDone['t3'] ?? false,
+                    onTap: () => _tapTask('t3'),
+                  ),
+
+                  // Task 4: ONU Serial
+                  RcTaskItem(
+                    emoji: '🔧',
+                    title: 'ONU Serial Verification',
+                    subtitle: 'Confirm serial number on device',
+                    done: _taskDone['t4'] ?? false,
+                    onTap: () => _tapTask('t4'),
+                  ),
+
+                  SizedBox(height: 8.h),
+                  RcButton(
+                    label: 'Mark Visit Complete ✓',
+                    onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(
+                        builder: (_) => const RcCustomerDetailsScreen(),
+                      ),
+                      (r) => false,
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
                 ],
               ),
             ),
@@ -319,6 +413,7 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final Color? valueColor;
   final bool isLast;
+
   const _SummaryRow(
     this.label,
     this.value, {
