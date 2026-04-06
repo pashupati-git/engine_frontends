@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class RcPaymentSuccessScreen extends StatelessWidget {
+class RcPaymentSuccessScreen extends StatefulWidget {
   final String customerName;
   final String package;
   final String period;
@@ -14,6 +14,11 @@ class RcPaymentSuccessScreen extends StatelessWidget {
     required this.amount,
   });
 
+  @override
+  State<RcPaymentSuccessScreen> createState() => _RcPaymentSuccessScreenState();
+}
+
+class _RcPaymentSuccessScreenState extends State<RcPaymentSuccessScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(body: Center(child: Text('Payment Success Screen')));
