@@ -20,11 +20,13 @@ class RcNoReasonScreen extends StatefulWidget {
   @override
   State<RcNoReasonScreen> createState() => _RcNoReasonScreenState();
 }
+ enum hehe { yes, no }
 
 class _RcNoReasonScreenState extends State<RcNoReasonScreen> {
   final _notesController = TextEditingController();
   final _remarksController = TextEditingController();
   DateTime? _revisitDate;
+
 
   // toggle states — wire to Bloc/Provider later
   final Map<String, bool> _toggles = {
