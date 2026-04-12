@@ -1,0 +1,233 @@
+================================================================================
+RC ROLLBACK — API INTEGRATION GUIDE
+================================================================================
+Author  : [Your name]
+Created : 2026-04-12
+Status  : FRONTEND ONLY — APIs pending from backend team
+
+This file documents ALL the API endpoints and request/response shapes that
+need to be integrated into the rc_rollback screens once the backend is ready.
+
+--------------------------------------------------------------------------------
+GLOBAL CONTEXT
+--------------------------------------------------------------------------------
+All API calls in this project use the `DefaultParams` model, which carries:
+  • linkEmpCode   — employee code (from login result)
+  • staffUsername — logged-in staff username
+  • sessionId     — auth token (from login result)
+
+Fetch these in useEffect using:
+  final loginResult = await SecureStorageHelper.getLoginResult();
+
+--------------------------------------------------------------------------------
+1. RC ROLLBACK TASK LIST
+   Screen : rc_rollback_list_screen.dart  (already implemented)
+   Bloc   : RcRollbackBloc
+   Event  : RcRollbackInitialEvent(params, 'RcUninstallation')
+   Returns: GetUninstallationRcNiTaskResponse → result.uninstallationList
+   Status : ✅ Connected
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+2. RC CUSTOMER DETAILS  (rc_customer_details_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • A "Get RC Task Detail" API to load the customer's full details by task ID.
+    This is the first screen after clicking a task from the list.
+
+Suggested endpoint (to confirm with backend):
+  POST /api/rc/get-task-detail
+  Body: {
+    "link_emp_code": ...,
+    "staff_username": ...,
+    "session_id": ...,
+    "customer_id": ...,          ← from task list item
+    "task_id": ...               ← uninstallationTaskId from list
+  }
+
+Expected response shape:
+  {
+    "status": "success",
+    "result": {
+      "customer_id": "362047",
+      "name": "Sora Maharjan",
+      "address": "Laka Chowk, Lalitpur",
+      "phone": "9860369715",
+      "gps_registered": "27.6355, 85.3193",
+      "gps_current": "27.6354, 85.3192",
+      "package": "Tachyon-100Mbps",
+      "speed": "100 Mbps",
+      "subscription": "12 Months",
+      "username": "sora.maharjan_362047"
+    }
+  }
+
+Bloc event to create:
+  FetchRcCustomerDetailEvent(params, customerId, taskId)
+
+Bloc state to update:
+  RcCustomerDetailResult? customerDetail;
+
+Screen action (useEffect):
+  useEffect(() {
+    context.read<RcRollbackBloc>().add(FetchRcCustomerDetailEvent(...));
+    return null;
+  }, []);
+
+Where to replace dummy data:
+  - dummyCustomer.name         → customerDetail.name
+  - dummyCustomer.address      → customerDetail.address
+  - dummyCustomer.phone        → customerDetail.phone
+  - dummyCustomer.gpsCurrent   → customerDetail.gpsCurrent
+  - dummyCustomer.gpsRegistered→ customerDetail.gpsRegistered
+  - dummyCustomer.package      → customerDetail.package
+  - dummyCustomer.subscription → customerDetail.subscription
+
+--------------------------------------------------------------------------------
+3. RC RECHARGE SCREEN  (rc_recharge_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • A "Get RC Packages" API to load available packages & their prices.
+
+Suggested endpoint:
+  GET /api/rc/packages?session_id=...
+
+Expected response:
+  {
+    "packages": [
+      { "name": "Tachyon-100Mbps", "base_price": 1200 },
+      { "name": "Tachyon-200Mbps", "base_price": 1800 },
+      ...
+    ],
+    "onu_types": ["Dual Band ONU", "WiFi 6 ONU"],
+    "subscription_periods": ["1 Month", "12 Months"]
+  }
+
+Also may need:
+  • "Calculate Amount" API (if server-side calculation is required):
+    POST /api/rc/calculate-amount
+    Body: { package_name, period, onu_type }
+    Returns: { total_amount: 1200, breakdown: "..." }
+
+Bloc event to create:
+  FetchRcRechargeOptionsEvent(params)
+
+Where to replace in screen:
+  - `const packageMap` → packages from Bloc state
+  - `rcOnuTypes`       → onu_types from API
+  - `rcSubscriptionPeriods` → subscription_periods from API
+
+--------------------------------------------------------------------------------
+4. QR PAYMENT SCREEN  (rc_qr_payment_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • A "Initiate Payment" API that returns a QR payload / payment URL.
+  • A "Check Payment Status" API to poll payment confirmation.
+
+Suggested endpoints:
+  POST /api/rc/initiate-payment
+  Body: {
+    "customer_id": ...,
+    "task_id": ...,
+    "amount": 1200,
+    "package": "Tachyon-100Mbps",
+    "period": "1 Month"
+  }
+  Returns: { "qr_data": "https://payment-gateway/qr?ref=...", "session_ref": "..." }
+
+  GET /api/rc/check-payment-status?session_ref=...
+  Returns: { "status": "confirmed" | "pending" | "failed" }
+
+Bloc event to create:
+  InitiateRcPaymentEvent(params, customerId, taskId, amount, package, period)
+  CheckRcPaymentStatusEvent(params, sessionRef)
+
+Where to replace in screen:
+  - `_qrData` (useMemoized) → use qrData from Bloc state (returned by initiate API)
+  - `checkPayment()` simulated delay → dispatch CheckRcPaymentStatusEvent
+  - Listen in BlocConsumer for PaymentConfirmedState to auto-navigate
+
+--------------------------------------------------------------------------------
+5. PAYMENT SUCCESS SCREEN  (rc_payment_sucess_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • "Update Phone Number" API
+  • "Upload Photo" API
+  • "Submit GPS" API
+  • "Verify ONU Serial" API
+  • "Mark Visit Complete" API
+
+Suggested endpoints:
+  POST /api/rc/update-phone   Body: { customer_id, new_phone }
+  POST /api/rc/upload-photo   Body: multipart/form-data { task_id, photo }
+  POST /api/rc/submit-gps     Body: { task_id, gps_coords }
+  POST /api/rc/verify-onu     Body: { task_id, serial_no }
+  POST /api/rc/close-task     Body: { task_id, customer_id, transaction_id }
+
+Transaction ID:
+  → Should come from the payment API response. Pass it through route `extra`.
+
+Bloc events:
+  UpdateRcPhoneEvent, UploadRcPhotoEvent, SubmitRcGpsEvent,
+  VerifyRcOnuSerialEvent, CloseRcTaskEvent
+
+--------------------------------------------------------------------------------
+6. NON-RECHARGE SCREEN  (rc_no_reason_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • "Save Non-Recharge Reason" API
+
+Suggested endpoint:
+  POST /api/rc/save-non-recharge-reason
+  Body: {
+    "customer_id": ...,
+    "task_id": ...,
+    "tech_reasons": ["Slow Speed", "High Latency"],
+    "payment_reasons": ["Too Expensive"],
+    "personal_reasons": [],
+    "notes": "...",
+    "remarks": "...",
+    "revisit_date": "2026-04-20",
+    "offer_explained": true,
+    "escalated": false,
+    "partial_paid": false,
+    "churned": false
+  }
+
+Bloc event:
+  SaveNonRechargeReasonEvent(params, customerId, taskId, ...)
+
+--------------------------------------------------------------------------------
+7. RC ROLLBACK EQUIPMENT RECOVERY  (rc_rollback_screen.dart)
+--------------------------------------------------------------------------------
+What is needed:
+  • "Get Rollback Detail" API for dropdowns (same as uninstallation)
+  • "Submit Rollback" API
+
+These are likely the SAME APIs as the existing uninstallation feature but
+with rollback_type = 'rc'. Confirm with backend.
+
+Suggested endpoint (same as uninstallation save):
+  POST /api/fiber/save-uninstallation-data
+  Body: {
+    "rollback_type": "rc",         ← rc-specific flag
+    "customer_id": ...,
+    "task_id": ...,
+    "session_id": ...,
+    "gps": "27.68, 85.32",
+    "reason_cat": ...,             ← from dropdown (API key, not display name)
+    "reason_sub_cat": ...,
+    "shifting_isp": ...,
+    "onu_details": "{ onu_sn, onu_qty, onu_deposit }",
+    "wire_100": "100",
+    "wire_150": "150",
+    "form_image": <File>,
+    "signature": <File>
+  }
+
+Bloc event (extend existing or create new):
+  SubmitRcRollbackEvent(params, ...)
+
+================================================================================
+END OF API GUIDE
+================================================================================

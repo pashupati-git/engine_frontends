@@ -1,0 +1,261 @@
+================================================================================
+RC ROLLBACK — BLOC INTEGRATION GUIDE
+================================================================================
+Author  : [Your name]
+Created : 2026-04-12
+Status  : FRONTEND ONLY — Bloc integration deferred until APIs are confirmed
+
+This file documents how to integrate Bloc into the rc_rollback screens,
+following the exact pattern used by the rest of the app (see uninstallation
+feature as the reference implementation).
+
+--------------------------------------------------------------------------------
+REFERENCE IMPLEMENTATION
+--------------------------------------------------------------------------------
+Study these files to understand the pattern before implementing:
+
+  Bloc  : lib/features/fiber_division/uninstallation/presentation/blocs/
+            uninstallation_bloc.dart
+            uninstallation_event.dart
+            uninstallation_state.dart
+
+  Screen: lib/features/fiber_division/uninstallation/presentation/pages/
+            uninstallation_save_screen.dart  (HookWidget + BlocConsumer + Bloc)
+            uninstallation_detail_screen.dart
+
+The rc_rollback already has its own Bloc for the LIST screen:
+  lib/features/fiber_division/rollback/presentation/blocs/rc_rollback_bloc.dart
+  → This handles: RcRollbackInitialEvent → fetch task list.
+
+--------------------------------------------------------------------------------
+STEP 1 — EXTEND THE EXISTING Bloc OR CREATE A NEW ONE
+--------------------------------------------------------------------------------
+Option A (recommended): Extend RcRollbackBloc with new events/states.
+  Add events:
+    FetchRcCustomerDetailEvent
+    SaveNonRechargeReasonEvent
+    InitiateRcPaymentEvent
+    CheckRcPaymentStatusEvent
+    UpdateRcPhoneEvent
+    UploadRcPhotoEvent
+    SubmitRcRollbackEvent
+    CloseRcTaskEvent
+
+  Add states:
+    RcCustomerDetailResult? customerDetail
+    RcPaymentResult? paymentResult
+    bool? paymentConfirmed
+    String? activeTransactionId
+
+  Each event maps to a use case → repository → API call.
+
+Option B: Create separate Blocs per flow:
+    RcVisitBloc    → customer details + proceed
+    RcPaymentBloc  → payment initiation + QR + success
+    RcRollbackBloc → equipment recovery form (extend existing)
+
+--------------------------------------------------------------------------------
+STEP 2 — PROVIDE THE BLOC
+--------------------------------------------------------------------------------
+In app_routes.dart, wrap the rcCustomerDetails route subtree with a
+BlocProvider, similar to how UninstallationBloc is provided:
+
+  GoRoute(
+    path: 'rcCustomerDetails',
+    name: 'rcCustomerDetails',
+    pageBuilder: (context, state) {
+      return smoothTransition(
+        BlocProvider(
+          create: (_) => RcRollbackBloc(...), // inject use case
+          child: const RcCustomerDetailsScreen(),
+        ),
+        state,
+      );
+    },
+  )
+
+OR — if the Bloc is already provided higher up in the widget tree
+(e.g. at the home screen level), you can skip individual BlocProviders
+and use context.read<RcRollbackBloc>() directly.
+
+Check how UninstallationBloc is provided in the app. It is likely added in
+home_screen.dart or inside the route builder. Follow that same pattern.
+
+--------------------------------------------------------------------------------
+STEP 3 — SCREEN PATTERN (HookWidget + BlocConsumer)
+--------------------------------------------------------------------------------
+All screens in rc_rollback are now HookWidget. The Bloc integration pattern is:
+
+```dart
+class RcCustomerDetailsScreen extends HookWidget {
+  const RcCustomerDetailsScreen({super.key, required this.data});
+  final UninstallationList data;
+
+  @override
+  Widget build(BuildContext context) {
+    final paramsState = useState<DefaultParams?>(null);
+
+    // ── Init: load params, then dispatch Bloc event ─────────────────────────
+    Future<void> initialize() async {
+      final loginResult = await SecureStorageHelper.getLoginResult();
+      if (loginResult != null && context.mounted) {
+        final params = DefaultParams(
+          linkEmpCode:   loginResult.metadata.linkEmpCode,
+          staffUsername: loginResult.metadata.username,
+          sessionId:     loginResult.metadata.authToken,
+        );
+        paramsState.value = params;
+        context.read<RcRollbackBloc>().add(
+          FetchRcCustomerDetailEvent(params, data.customerId ?? ''),
+        );
+      }
+    }
+
+    useEffect(() {
+      initialize();
+      return null;
+    }, []);
+
+    // ── BlocConsumer ─────────────────────────────────────────────────────────
+    return BaseScreen(
+      pageTitle: 'RC Customer Details',
+      child: BlocConsumer<RcRollbackBloc, RcRollbackState>(
+        listener: (context, state) {
+          ClassicBlocListener.handleBlocState(
+            context: context,
+            status: state.status,
+            message: state.message ?? '',
+          );
+        },
+        builder: (context, state) {
+          return ClassicBlocBuilder(
+            status: state.status,
+            successWidget: () {
+              final detail = state.customerDetail!;
+              return Column(children: [
+                // use detail.name, detail.phone, etc.
+              ]);
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+```
+
+--------------------------------------------------------------------------------
+STEP 4 — NAVIGATION WITH DATA PASSING
+--------------------------------------------------------------------------------
+Once the Bloc has the RC customer data loaded in state, pass it forward
+to child screens via go_router `extra`. Example from the rcCustomerDetails screen:
+
+  // When navigating to recharge:
+  context.pushNamed(
+    'rcRecharge',
+    extra: {
+      'customer': state.customerDetail,  // ← pass the real model
+      'taskId': data.uninstallationTaskId,
+    },
+  );
+
+  // In app_routes.dart rcRecharge route:
+  GoRoute(
+    path: 'rcRecharge',
+    name: 'rcRecharge',
+    pageBuilder: (context, state) {
+      final extra = state.extra as Map<String, dynamic>;
+      final customer = extra['customer'] as RcCustomerDetailResult;
+      final taskId = extra['taskId'] as String;
+      return smoothTransition(
+        RcRechargeScreen(customer: customer, taskId: taskId), state);
+    },
+  )
+
+--------------------------------------------------------------------------------
+STEP 5 — USING ClassicBlocListener AND ClassicBlocBuilder
+--------------------------------------------------------------------------------
+These helpers are already used everywhere. Key usage:
+
+  ClassicBlocListener.handleBlocState(
+    context: context,
+    status: state.status,
+    message: state.message ?? '',
+    showSuccessSnackBar: state.someResponseNotNull,
+    onSuccess: () { /* navigate or update UI */ },
+  );
+
+  ClassicBlocBuilder(
+    status: state.status,   // shows loader/error/empty automatically
+    successWidget: () { return YourWidget(); },
+  );
+
+  ClassicSnackBar.error(context: context, msg: 'Error message');
+  ClassicSnackBar.success(context: context, msg: 'Submitted!');
+
+--------------------------------------------------------------------------------
+STEP 6 — LOADING STATE ON SUBMIT BUTTON
+--------------------------------------------------------------------------------
+All submit buttons in the app use ClassicButton which supports isLoading:
+
+  ClassicButton(
+    text: 'Submit Rollback',
+    isLoading: state.status == RequestStatus.loading,
+    onTap: onSubmit,
+  )
+
+Since the current rc_rollback design uses RcButton, add a loading param:
+  RcButton(
+    label: 'Submit Rollback ✓',
+    isLoading: state.status == RequestStatus.loading, // ← add to RcButton widget
+    onTap: state.status == RequestStatus.loading ? null : submit,
+  )
+
+Alternatively, replace RcButton with ClassicButton for submit actions only.
+
+--------------------------------------------------------------------------------
+STEP 7 — SNACKBAR
+--------------------------------------------------------------------------------
+Use ClassicSnackBar (already exported from classic_common_imports.dart):
+  ClassicSnackBar.error(context: context, msg: 'Error!');
+  ClassicSnackBar.success(context: context, msg: 'Submitted!');
+
+Do NOT use ScaffoldMessenger or SnackBar directly in new screens.
+
+--------------------------------------------------------------------------------
+EXISTING BLOC (List Screen)
+--------------------------------------------------------------------------------
+File: lib/features/fiber_division/rollback/presentation/blocs/rc_rollback_bloc.dart
+Events handled:
+  - RcRollbackInitialEvent → fetches the RC task list
+  - (add more events here following the Bloc pattern)
+
+State:
+  - rc_rollback_state.dart → holds status, message, response
+
+For reference on the task list model (already used in the list screen):
+  lib/features/fiber_division/rollback/data/models/
+    get_uninstallation_rc_ni_task_response.dart
+
+--------------------------------------------------------------------------------
+QUICK SUMMARY — Files to create/modify when APIs are ready
+--------------------------------------------------------------------------------
+
+[MODIFY] rc_rollback_event.dart            — add new events
+[MODIFY] rc_rollback_state.dart            — add new state fields
+[MODIFY] rc_rollback_bloc.dart             — add event handlers
+[NEW]    rc_rollback_repository.dart       — API calls for all rc screens
+[NEW]    rc_rollback_use_case.dart         — use cases (optional layer)
+[NEW]    rc_customer_detail_result.dart    — response model for customer detail API
+[NEW]    rc_payment_result.dart            — response model for payment API
+[MODIFY] rc_customer_details_screen.dart   — accept data param, connect Bloc
+[MODIFY] rc_recharge_screen.dart           — accept data param, load packages from Bloc
+[MODIFY] rc_qr_payment_screen.dart         — real payment init + check via Bloc
+[MODIFY] rc_payment_sucess_screen.dart     — real task close via Bloc
+[MODIFY] rc_no_reason_screen.dart          — submit via Bloc
+[MODIFY] rc_rollback_screen.dart           — submit via Bloc
+[MODIFY] app_routes.dart                   — pass real data via extra
+
+================================================================================
+END OF BLOC INTEGRATION GUIDE
+================================================================================
